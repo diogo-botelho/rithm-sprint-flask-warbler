@@ -8,7 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 bcrypt = Bcrypt()
 db = SQLAlchemy()
 
-
 class Follows(db.Model):
     """Connection of a follower <-> followed_user."""
 
@@ -32,6 +31,9 @@ class User(db.Model):
 
     __tablename__ = 'users'
 
+    DEFAULT_IMG_URL = "/static/images/default-pic.png"
+    DEFAULT_HEADER_IMG_URL = "/static/images/warbler-hero.jpg"
+
     id = db.Column(
         db.Integer,
         primary_key=True,
@@ -51,12 +53,12 @@ class User(db.Model):
 
     image_url = db.Column(
         db.Text,
-        default="/static/images/default-pic.png",
+        default=DEFAULT_IMG_URL,
     )
 
     header_image_url = db.Column(
         db.Text,
-        default="/static/images/warbler-hero.jpg"
+        default=DEFAULT_HEADER_IMG_URL
     )
 
     bio = db.Column(
@@ -76,7 +78,7 @@ class User(db.Model):
         nullable=False,
     )
 
-    messages = db.relationship('Message', order_by='Message.timestamp.desc()')
+    messages = db.relationship('Message', order_by='Message.timestamp.desc()',backref='user')
 
     followers = db.relationship(
         "User",
@@ -176,7 +178,7 @@ class Message(db.Model):
         nullable=False,
     )
 
-    user = db.relationship('User') #Note: There's no backref. Do we want to add it?
+    # user = db.relationship('User') #Note: There's no backref. Do we want to add it?
 
 
 def connect_db(app):

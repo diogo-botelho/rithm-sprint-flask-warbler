@@ -25,9 +25,9 @@ class UserEditForm(FlaskForm):
     email = StringField('E-mail', validators=[DataRequired(), Email()])
     image_url = StringField('(Optional) Image URL', validators=[Optional()])
     header_image_url = StringField('(Optional) Header Image URL', validators=[Optional()])
-    bio = TextAreaField('Bio', validators=[DataRequired()])
+    bio = TextAreaField('(Optional) Bio', validators=[Optional()])
 
-    password = PasswordField('Confirm Password to Save Changes', validators=[Length(min=6), DataRequired()])
+    password = PasswordField('Password', validators=[Length(min=6), DataRequired()])
     
 
 class LoginForm(FlaskForm):
@@ -38,6 +38,6 @@ class LoginForm(FlaskForm):
 
 class CsrfForm(FlaskForm):
     """Form for any actions where we need CSRF protection but don't 
-    need any fields""" #We can update later to mention exactly what it's being used for.
+    need any fields"""
 
 

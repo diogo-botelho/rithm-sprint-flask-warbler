@@ -3,10 +3,11 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 from werkzeug.exceptions import Unauthorized
 
 from forms import UserAddForm, LoginForm, MessageForm, CsrfForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Follows
 
 import dotenv
 dotenv.load_dotenv()
@@ -33,7 +34,9 @@ connect_db(app)
 
 @app.before_request
 def add_user_to_g():
-    """If we're logged in, add curr user to Flask global."""
+    """If we're logged in, add curr user and CsrfForm() to Flask global"""
+    g.logout_form = CsrfForm()
+
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
 
@@ -42,9 +45,10 @@ def add_user_to_g():
 
 
 def do_login(user):
-    """Log in user."""
+    """Log in user. Add CsrfForm() to Flask global"""
 
     session[CURR_USER_KEY] = user.id
+    # g.logout_form = CsrfForm()
 
 
 def do_logout():
@@ -114,13 +118,9 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS AND FIX BUG
-    # DO NOT CHANGE METHOD ON ROUTE
-    form = CsrfForm()
-
-    if form.validate_on_submit():
+    if g.logout_form.validate_on_submit():
         do_logout()
-        g.user = None #Alternatively, call add_user_to_g()
+        # g.user = None #Alternatively, call add_user_to_g()
 
         flash('User successfully logged out.')
         return redirect('/login') 
@@ -138,7 +138,7 @@ def list_users():
 
     Can take a 'q' param in querystring to search by that username.
     """
-    logout_form = CsrfForm()
+
     search = request.args.get('q')
 
     if not search:
@@ -146,43 +146,41 @@ def list_users():
     else:
         users = User.query.filter(User.username.like(f"%{search}%")).all()
 
-    return render_template('users/index.html', users=users, logout_form=logout_form)
+    return render_template('users/index.html', users=users)
 
 
 @app.get('/users/<int:user_id>')
 def users_show(user_id):
     """Show user profile."""
 
-    logout_form = CsrfForm()
     user = User.query.get_or_404(user_id)
 
-    return render_template('users/show.html', user=user, logout_form=logout_form)
+    return render_template('users/show.html', user=user)
 
 
 @app.get('/users/<int:user_id>/following')
 def show_following(user_id):
     """Show list of people this user is following."""
 
-    logout_form = CsrfForm()
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/following.html', user=user, logout_form=logout_form)
+    return render_template('users/following.html', user=user)
 
 
 @app.get('/users/<int:user_id>/followers')
 def users_followers(user_id):
     """Show list of followers of this user."""
 
-    logout_form = CsrfForm()
+
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/followers.html', user=user, logout_form=logout_form)
+    return render_template('users/followers.html', user=user)
 
 
 @app.post('/users/follow/<int:follow_id>')
@@ -214,7 +212,6 @@ def stop_following(follow_id):
 
     return redirect(f"/users/{g.user.id}/following")
 
-
 @app.route('/users/profile', methods=["GET", "POST"])
 def update_profile():
     """Update profile for current user."""
@@ -223,42 +220,44 @@ def update_profile():
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    user = User.query.get_or_404(session[CURR_USER_KEY])
-    logout_form = CsrfForm()
-    form = UserEditForm(obj=user) 
+    form = UserEditForm(obj=g.user) 
 
     if form.validate_on_submit():
         password = form.password.data
-        if User.authenticate(user.username, password):   
-            user.username = form.username.data or user.username    #shouldn't be necessary to have or statement   
-            user.email = form.email.data
-            user.image_url = form.image_url.data or user.image_url
-            user.header_image_url = form.header_image_url.data or user.header_image_url
-            user.bio = form.bio.data
+        if User.authenticate(g.user.username, password):   
+            g.user.username = form.username.data or g.user.username    #shouldn't be necessary to have or statement   
+            g.user.email = form.email.data or g.user.email
+            g.user.image_url = form.image_url.data or User.DEFAULT_IMG_URL
+            g.user.header_image_url = form.header_image_url.data or User.DEFAULT_HEADER_IMG_URL
+            g.user.bio = form.bio.data or ""
             db.session.commit()
-            return redirect(f"/users/{user.id}")
+            return redirect(f"/users/{g.user.id}")
         else:
             flash("Access unauthorized.", "danger")
             return redirect("/")
     
-    return render_template("users/edit.html", form=form, logout_form=logout_form, user_id=user.id)
+    return render_template("users/edit.html", form=form, user_id=g.user.id)
 
 
 @app.post('/users/delete')
 def delete_user():
     """Delete user."""
+#CODE REVIEW: Add Csrf protection
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    do_logout()
+    if g.logout_form.validate_on_submit():    
+        do_logout()
 
-    db.session.delete(g.user)
-    db.session.commit()
+        db.session.delete(g.user)
+        db.session.commit()
 
-    return redirect("/signup")
+        return redirect("/signup")
 
+    flash("Access unauthorized.", "danger")
+    return redirect("/")
 
 ##############################################################################
 # Messages routes:
@@ -275,7 +274,6 @@ def messages_add():
         return redirect("/")
 
     form = MessageForm()
-    logout_form=CsrfForm()
 
     if form.validate_on_submit():
         msg = Message(text=form.text.data)
@@ -284,16 +282,15 @@ def messages_add():
 
         return redirect(f"/users/{g.user.id}")
 
-    return render_template('messages/new.html', form=form, logout_form=logout_form)
+    return render_template('messages/new.html', form=form)
 
 
 @app.get('/messages/<int:message_id>')
 def messages_show(message_id):
     """Show a message."""
 
-    logout_form=CsrfForm()
     msg = Message.query.get(message_id)
-    return render_template('messages/show.html', message=msg,logout_form=logout_form)
+    return render_template('messages/show.html', message=msg)
 
 
 @app.post('/messages/<int:message_id>/delete')
@@ -320,18 +317,21 @@ def homepage():
     """Show homepage:
 
     - anon users: no messages
-    - logged in: 100 most recent messages of followed_users
+    - logged in: 100 most recent messages of self and followed_users
     """
 
     if g.user:
-        logout_form=CsrfForm()
+        user = User.query.get_or_404(session[CURR_USER_KEY])
+        following_user_ids = [user.id for user in user.following]
+
         messages = (Message
                     .query
+                    .filter(or_(Message.user_id.in_(following_user_ids),Message.user_id==user.id))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages,logout_form=logout_form)
+        return render_template('home.html', messages=messages)
 
     else:
         return render_template('home-anon.html')
