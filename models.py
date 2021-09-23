@@ -121,18 +121,6 @@ class User(db.Model):
         found_user_list = [user for user in self.following if user == other_user]
         return len(found_user_list) == 1
 
-    def likes_of_user_messages(self):
-        """Return sum of likes for all messages of user"""
-
-        #Need to loop through user's messages and count #likes for each message
-
-        num_likes = 0
-        for message in self.messages:
-            num_likes += len(message.user_likes)
-        return num_likes
-
-        #db.func.count()
-
     @classmethod
     def signup(cls, username, email, password, image_url):
         """Sign up user.
@@ -200,23 +188,10 @@ class Message(db.Model):
         nullable=False,
     )
 
-    # #Method is_liked_by(user.id)
-    # def is_liked_by(self, user):
-    #     """Is this message liked by `user?
-    #     Takes in user instance as argument, returns True/False."""
-
-    #     user_list = [user for user in self.likes if likes.user_id == user.id]
-    #     return len(user_list) == 1
-
 class Like(db.Model):
     """ An individual user like for a message """
 
     __tablename__ = 'likes'
-
-    # id = db.Column(
-    #     db.Integer,
-    #     primary_key=True,
-    # )
 
     user_id = db.Column(
         db.Integer,

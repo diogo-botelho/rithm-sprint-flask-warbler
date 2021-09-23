@@ -119,7 +119,6 @@ def logout():
 
     if g.csrf_form.validate_on_submit():
         do_logout()
-        # g.user = None #Alternatively, call add_user_to_g()
 
         flash('User successfully logged out.')
         return redirect('/login') 
@@ -181,6 +180,17 @@ def users_followers(user_id):
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
+@app.get('/users/<int:user_id>/likes')
+def users_likes(user_id):
+    """Show list of messages liked by this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    return render_template('users/likes.html', user=user)
+
 
 @app.post('/users/follow/<int:follow_id>')
 def add_follow(follow_id):
@@ -224,7 +234,7 @@ def update_profile():
     if form.validate_on_submit():
         password = form.password.data
         if User.authenticate(g.user.username, password):   
-            g.user.username = form.username.data or g.user.username    #shouldn't be necessary to have or statement   
+            g.user.username = form.username.data or g.user.username   
             g.user.email = form.email.data or g.user.email
             g.user.image_url = form.image_url.data or User.DEFAULT_IMG_URL
             g.user.header_image_url = form.header_image_url.data or User.DEFAULT_HEADER_IMG_URL
