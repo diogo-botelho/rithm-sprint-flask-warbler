@@ -27,6 +27,17 @@ from app import app
 
 db.create_all()
 
+TEST_USER_DATA_1 = {
+    "email":"test@test.com",
+    "username":"testuser",
+    "password":"HASHED_PASSWORD"
+}
+
+TEST_USER_DATA_2 = {
+    "email":"test2@test.com",
+    "username":"testuser2",
+    "password":"HASHED_PASSWORD"
+}
 
 class UserModelTestCase(TestCase):
     """Test views for messages."""
@@ -34,24 +45,32 @@ class UserModelTestCase(TestCase):
     def setUp(self):
         """Create test client, add sample data."""
 
-        User.query.delete()
-        Message.query.delete()
         Follows.query.delete()
+        Message.query.delete()
+        User.query.delete()
+
+        test_user_1 = User(**TEST_USER_DATA_1)
+        test_user_2 = User(**TEST_USER_DATA_2)
+        db.session.add_all([test_user_1, test_user_2])
+        db.session.commit()
+
+        self.test_user_1 = test_user_1
+        self.test_user_2 = test_user_2
 
         self.client = app.test_client()
+    
+    def tearDown(self):
+        """Clean up fouled transactions."""
+
+        db.session.rollback()
 
     def test_user_model(self):
         """Does basic model work?"""
 
-        u = User(
-            email="test@test.com",
-            username="testuser",
-            password="HASHED_PASSWORD"
-        )
+        # User1 should have no messages & no followers
+        self.assertEqual(len(self.test_user_1.messages), 0)
+        self.assertEqual(len(self.test_user_1.followers), 0)
 
-        db.session.add(u)
-        db.session.commit()
-
-        # User should have no messages & no followers
-        self.assertEqual(len(u.messages), 0)
-        self.assertEqual(len(u.followers), 0)
+        # User2 should have no messages & no followers
+        self.assertEqual(len(self.test_user_2.messages), 0)
+        self.assertEqual(len(self.test_user_2.followers), 0)
