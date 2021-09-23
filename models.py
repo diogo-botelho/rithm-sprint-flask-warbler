@@ -178,10 +178,18 @@ class Message(db.Model):
         nullable=False,
     )
 
+    #Method is_liked_by(user.id)
+    def is_liked_by(self, user):
+        """Is this message liked by `user?
+        Takes in user instance as argument, returns True/False."""
+
+        user_list = [user for user in self.likes if likes.user_id == user.id]
+        return len(user_list) == 1
+
 class Like(db.Model):
     """ An individual user like for a message """
 
-    __tablename__ = "likes"
+    __tablename__ = 'likes'
 
     id = db.Column(
         db.Integer,
@@ -200,6 +208,7 @@ class Like(db.Model):
         nullable=False,
     )
 
+    #Take this out and change the logic to deleting from table rather than switch on/off
     liked = db.Column(
         db.Boolean,
         nullable=False,
@@ -208,6 +217,7 @@ class Like(db.Model):
 
     message = db.relationship('Message', backref='likes')
     user = db.relationship('User', backref='likes')
+    #Create a through relationship between users and messages through likes
 
 
 def connect_db(app):

@@ -52,7 +52,7 @@
         <li><a href="/messages/new">New Message</a></li>
         <li>
           <form action="/logout" method="POST">
-            {{ g.logout_form.hidden_tag() }}
+            {{ g.csrf_form.hidden_tag() }}
             <button class="btn btn-link" role="link">
               Log out
             </button>
@@ -77,6 +77,3 @@
 </body>
 
 </html>
-
-<!-- <i class="far fa-star"></i> -->
-<!-- <i class="fas fa-star"></i> -->

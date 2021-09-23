@@ -7,7 +7,7 @@ from sqlalchemy import or_
 from werkzeug.exceptions import Unauthorized
 
 from forms import UserAddForm, LoginForm, MessageForm, CsrfForm, UserEditForm
-from models import db, connect_db, User, Message, Follows
+from models import db, connect_db, User, Message, Follows, Like
 
 import dotenv
 dotenv.load_dotenv()
@@ -35,7 +35,7 @@ connect_db(app)
 @app.before_request
 def add_user_to_g():
     """If we're logged in, add curr user and CsrfForm() to Flask global"""
-    g.logout_form = CsrfForm()
+    g.csrf_form = CsrfForm()
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
@@ -48,7 +48,6 @@ def do_login(user):
     """Log in user. Add CsrfForm() to Flask global"""
 
     session[CURR_USER_KEY] = user.id
-    # g.logout_form = CsrfForm()
 
 
 def do_logout():
@@ -118,7 +117,7 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    if g.logout_form.validate_on_submit():
+    if g.csrf_form.validate_on_submit():
         do_logout()
         # g.user = None #Alternatively, call add_user_to_g()
 
@@ -242,13 +241,12 @@ def update_profile():
 @app.post('/users/delete')
 def delete_user():
     """Delete user."""
-#CODE REVIEW: Add Csrf protection
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    if g.logout_form.validate_on_submit():    
+    if g.csrf_form.validate_on_submit():    
         do_logout()
 
         db.session.delete(g.user)
@@ -306,6 +304,51 @@ def messages_destroy(message_id):
     db.session.commit()
 
     return redirect(f"/users/{g.user.id}")
+
+
+##############################################################################
+# Likes routes
+
+@app.post('/messages/<int:message_id>/like')
+def add_or_remove_like(message_id):
+    """Add/Remove like from message"""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    if g.csrf_form.validate_on_submit(): 
+        
+        #When someone clicks the like/unlike button:
+            # Who's clicking = user.id - g.user
+            # What message is being liked/unliked = message.id - gets from param
+            # Is it currently liked = likes.liked 
+
+            #call the method is_liked_by(g.user)
+
+        message = Message.query.get_or_404(message_id)
+
+
+        #Lines 333 - 342 need to be changed once we have the through relationship workin
+        like = Like.query.filter(message.id==Like.message_id & g.user.id == Like.user_id).first()
+
+        if like:
+            #like.liked = 'False'
+            like.liked = not like.liked
+
+        else:
+            like = Like(message_id=message.id,user_id=user.id)
+
+            db.session.add(like)
+
+        db.session.commit()
+
+        return redirect(f"/messages/{message.id}")
+
+    else:
+        flash("Access unauthorized.", "danger")
+    
+    return redirect("/")        
 
 
 ##############################################################################
