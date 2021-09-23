@@ -169,7 +169,7 @@ def show_following(user_id):
 
 
 @app.get('/users/<int:user_id>/followers')
-def users_followers(user_id):
+def show_users_followers(user_id):
     """Show list of followers of this user."""
 
 
@@ -181,7 +181,7 @@ def users_followers(user_id):
     return render_template('users/followers.html', user=user)
 
 @app.get('/users/<int:user_id>/likes')
-def users_likes(user_id):
+def show_users_likes(user_id):
     """Show list of messages liked by this user."""
 
     if not g.user:
@@ -328,8 +328,9 @@ def add_or_remove_like(message_id):
         return redirect("/")
 
     if g.csrf_form.validate_on_submit(): 
-        
         message = Message.query.get_or_404(message_id)
+        
+        #Code review: We can make a user method to do 334-337
         if g.user in message.user_likes:
             message.user_likes.remove(g.user)
         else:          

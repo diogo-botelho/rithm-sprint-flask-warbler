@@ -18,6 +18,7 @@
               {{ message.timestamp.strftime('%d %B %Y') }}
             </span>
             <p>{{ message.text }}</p>
+            <!--Code review: Look to jinja docs for includes to deal with code repetition-->
             {% if g.user.id != message.user.id %}
               <form class="messages-like" id="like-unlike-form" method="POST" action="/messages/{{ message.id }}/like">
                 {{ g.csrf_form.hidden_tag() }}
