@@ -15,7 +15,7 @@
             <a href="/users/{{ message.user.id }}">@{{ message.user.username }}</a>
             {% if g.user %}
             {% if g.user.id != message.user.id %}
-            <form method="POST" action="/messages/{{ message.id }}/like">
+            <form id="like-unlike-form" method="POST" action="/messages/{{ message.id }}/like">
               {{ g.csrf_form.hidden_tag() }}
               <!-- <button class="btn btn-primary">Like
               </button> -->
