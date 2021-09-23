@@ -78,7 +78,9 @@ class User(db.Model):
         nullable=False,
     )
 
-    messages = db.relationship('Message', order_by='Message.timestamp.desc()',backref='user')
+    messages = db.relationship('Message', 
+        order_by='Message.timestamp.desc()',
+        backref='user')
 
     followers = db.relationship(
         "User",
@@ -93,6 +95,14 @@ class User(db.Model):
         primaryjoin=(Follows.user_following_id == id),
         secondaryjoin=(Follows.user_being_followed_id == id)
     )
+
+    liked_messages = db.relationship(
+        'Message',
+        secondary="likes",
+        # cascade="all,delete",
+        backref="user_likes",
+    )
+
 
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}>"
@@ -178,46 +188,35 @@ class Message(db.Model):
         nullable=False,
     )
 
-    #Method is_liked_by(user.id)
-    def is_liked_by(self, user):
-        """Is this message liked by `user?
-        Takes in user instance as argument, returns True/False."""
+    # #Method is_liked_by(user.id)
+    # def is_liked_by(self, user):
+    #     """Is this message liked by `user?
+    #     Takes in user instance as argument, returns True/False."""
 
-        user_list = [user for user in self.likes if likes.user_id == user.id]
-        return len(user_list) == 1
+    #     user_list = [user for user in self.likes if likes.user_id == user.id]
+    #     return len(user_list) == 1
 
 class Like(db.Model):
     """ An individual user like for a message """
 
     __tablename__ = 'likes'
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True,
-    )
+    # id = db.Column(
+    #     db.Integer,
+    #     primary_key=True,
+    # )
 
     user_id = db.Column(
         db.Integer,
         db.ForeignKey('users.id', ondelete='CASCADE'),
-        nullable=False,
+        primary_key=True,
     )
 
     message_id = db.Column(
         db.Integer,
         db.ForeignKey('messages.id', ondelete='CASCADE'),
-        nullable=False,
+        primary_key=True,
     )
-
-    #Take this out and change the logic to deleting from table rather than switch on/off
-    liked = db.Column(
-        db.Boolean,
-        nullable=False,
-        default=True,
-    )
-
-    message = db.relationship('Message', backref='likes')
-    user = db.relationship('User', backref='likes')
-    #Create a through relationship between users and messages through likes
 
 
 def connect_db(app):

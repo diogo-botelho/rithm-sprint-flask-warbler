@@ -28,6 +28,7 @@
             </form>
             <!--Need to check if this is where we want this to live-->
             <form method="POST" action="/messages/{{ message.id }}/like">
+              {{ g.csrf_form.hidden_tag() }}
               <button class="btn btn-primary">Like
               </button> 
             </form>

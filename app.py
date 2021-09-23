@@ -314,41 +314,24 @@ def add_or_remove_like(message_id):
     """Add/Remove like from message"""
 
     if not g.user:
-        flash("Access unauthorized.", "danger")
+        flash("Access unauthorized (at the beginning).", "danger")
         return redirect("/")
 
     if g.csrf_form.validate_on_submit(): 
         
-        #When someone clicks the like/unlike button:
-            # Who's clicking = user.id - g.user
-            # What message is being liked/unliked = message.id - gets from param
-            # Is it currently liked = likes.liked 
-
-            #call the method is_liked_by(g.user)
-
         message = Message.query.get_or_404(message_id)
-
-
-        #Lines 333 - 342 need to be changed once we have the through relationship workin
-        like = Like.query.filter(message.id==Like.message_id & g.user.id == Like.user_id).first()
-
-        if like:
-            #like.liked = 'False'
-            like.liked = not like.liked
-
-        else:
-            like = Like(message_id=message.id,user_id=user.id)
-
-            db.session.add(like)
+        if g.user in message.user_likes:
+            message.user_likes.remove(g.user)
+            
+        else:          
+            message.user_likes.append(g.user)
 
         db.session.commit()
-
         return redirect(f"/messages/{message.id}")
 
     else:
-        flash("Access unauthorized.", "danger")
-    
-    return redirect("/")        
+        flash("Access unauthorized (at the end).", "danger")
+        return redirect("/")        
 
 
 ##############################################################################
