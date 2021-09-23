@@ -314,7 +314,7 @@ def add_or_remove_like(message_id):
     """Add/Remove like from message"""
 
     if not g.user:
-        flash("Access unauthorized (at the beginning).", "danger")
+        flash("Access unauthorized.", "danger")
         return redirect("/")
 
     if g.csrf_form.validate_on_submit(): 
@@ -322,15 +322,13 @@ def add_or_remove_like(message_id):
         message = Message.query.get_or_404(message_id)
         if g.user in message.user_likes:
             message.user_likes.remove(g.user)
-            
         else:          
             message.user_likes.append(g.user)
-
         db.session.commit()
         return redirect(f"/messages/{message.id}")
 
     else:
-        flash("Access unauthorized (at the end).", "danger")
+        flash("Access unauthorized.", "danger")
         return redirect("/")        
 
 
