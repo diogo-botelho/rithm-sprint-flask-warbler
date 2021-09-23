@@ -103,9 +103,13 @@ class User(db.Model):
         backref="user_likes",
     )
 
-
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}>"
+
+    # def set_of_liked_messages(self):
+    #     """ Returns a set of liked messages by the user """
+
+    #     return set(self.liked_messages)
 
     def is_followed_by(self, other_user):
         """Is this user followed by `other_user`?
@@ -120,6 +124,17 @@ class User(db.Model):
 
         found_user_list = [user for user in self.following if user == other_user]
         return len(found_user_list) == 1
+    
+    def add_or_remove_like(self, message):
+        """ Takes in a message. If the user has already liked the message, will remove
+        the like from the message. If the user has not already liked the message, will
+        add the like to the message. 
+        """
+
+        if self in message.user_likes:
+            message.user_likes.remove(self)
+        else:          
+            message.user_likes.append(self)
 
     @classmethod
     def signup(cls, username, email, password, image_url):

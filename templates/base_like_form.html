@@ -1,0 +1,11 @@
+<!-- TOFIX: Refactor message.user_likes to be a set -->
+<form class="messages-like" id="like-unlike-form" method="POST" action="/messages/{{ message.id }}/like">
+    {{ g.csrf_form.hidden_tag() }}
+    <button>
+        {% if g.user in message.user_likes %}
+        <i class="fas fa-star"></i>
+        {% else %}
+        <i class="far fa-star"></i>
+        {% endif %}
+    </button>
+</form>

@@ -15,16 +15,7 @@
             <a href="/users/{{ message.user.id }}">@{{ message.user.username }}</a>
             {% if g.user %}
             {% if g.user.id != message.user.id %}
-            <form class="messages-like" id="like-unlike-form" method="POST" action="/messages/{{ message.id }}/like">
-              {{ g.csrf_form.hidden_tag() }}
-              <button>
-              {% if g.user in message.user_likes %}
-                <i class="fas fa-star"></i>
-                {% else %}
-                <i class="far fa-star"></i>
-                {% endif %}
-              </button>
-            </form>
+            {% include "base_like_form.html" %}
             {% elif g.user.id == message.user.id %}
             <form method="POST" action="/messages/{{ message.id }}/delete">
               <button class="btn btn-outline-danger">Delete</button>

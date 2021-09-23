@@ -39,6 +39,7 @@ def add_user_to_g():
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
+        # g.user.liked_messages = g.user.set_of_liked_messages()
 
     else:
         g.user = None
@@ -48,7 +49,6 @@ def do_login(user):
     """Log in user. Add CsrfForm() to Flask global"""
 
     session[CURR_USER_KEY] = user.id
-
 
 def do_logout():
     """Logout user."""
@@ -330,11 +330,7 @@ def add_or_remove_like(message_id):
     if g.csrf_form.validate_on_submit(): 
         message = Message.query.get_or_404(message_id)
         
-        #Code review: We can make a user method to do 334-337
-        if g.user in message.user_likes:
-            message.user_likes.remove(g.user)
-        else:          
-            message.user_likes.append(g.user)
+        g.user.add_or_remove_like(message)
         db.session.commit()
         return redirect(f"/messages/{message.id}")
 
