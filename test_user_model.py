@@ -18,9 +18,11 @@ from models import db, User, Message, Follows
 
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 
+
 # Now we can import app
 
 from app import app, CURR_USER_KEY
+app.config['WTF_CSRF_ENABLED'] = False
 
 # Create our tables (we do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data
@@ -84,19 +86,6 @@ class UserModelTestCase(TestCase):
         
         self.assertEqual(f"{test_user_1}",f"<User #{test_user_1.id}: {test_user_1.username}, {test_user_1.email}>")
 
-    def test_login_works(self):
-        """Test if login works."""
-
-        url = '/login'
-        resp = self.client.post(url,json = {"username": "test_user", "password": "HASHED_PASSWORD"},follow_redirects=True)
-
-        html = resp.get_data(as_text=True)
-
-        self.assertEqual(resp.status_code,200)
-        breakpoint()
-        self.assertIn('<h2 class="join-message">Welcome back.</h2>', html)
-        # self.assertEqual(session[CURR_USER_KEY],self.test_user_1_id)
-
 
     def test_is_following(self):
         """Test user1 is following user2"""
@@ -106,11 +95,81 @@ class UserModelTestCase(TestCase):
 
         url = f"/users/follow/{self.test_user_2_id}"
         resp = self.client.post(url,follow_redirects=True)
+        # html = resp.get_data(as_text=True)
+        test_user_1 = User.query.get(self.test_user_1_id)
+        test_user_2 = User.query.get(self.test_user_2_id)
+
+        # self.assertEqual(resp.status_code,200)
+        # self.assertIn('<p>@testuser2</p>',html)
+        self.assertEqual(Follows.query.count(), 1)
+        self.assertTrue(test_user_1.is_following(test_user_2))
+
+
+    def test_is_not_following(self):
+        """Test user1 is NOT following user2"""
+
+        with self.client.session_transaction() as sess:
+            sess[CURR_USER_KEY] = self.test_user_1_id
+
+        test_user_1 = User.query.get(self.test_user_1_id)
+        test_user_2 = User.query.get(self.test_user_2_id)
+
+        self.assertEqual(Follows.query.count(), 0)
+        self.assertFalse(test_user_1.is_following(test_user_2))
+
+
+    def test_is_followed_by(self):
+        """Test user2 is followed by user1"""
+
+        with self.client.session_transaction() as sess:
+            sess[CURR_USER_KEY] = self.test_user_1_id
+
+        url = f"/users/follow/{self.test_user_2_id}"
+        resp = self.client.post(url,follow_redirects=True)
+        # html = resp.get_data(as_text=True)
+        test_user_1 = User.query.get(self.test_user_1_id)
+        test_user_2 = User.query.get(self.test_user_2_id)
+
+        # self.assertEqual(resp.status_code,200)
+        # self.assertIn('<p>@testuser2</p>',html)
+        self.assertEqual(Follows.query.count(), 1)
+        self.assertTrue(test_user_2.is_followed_by(test_user_1))
+
+
+    def test_is_not_followed_by(self):
+        """Test user2 is NOT followed by user1"""
+
+        with self.client.session_transaction() as sess:
+            sess[CURR_USER_KEY] = self.test_user_1_id
+
+        test_user_1 = User.query.get(self.test_user_1_id)
+        test_user_2 = User.query.get(self.test_user_2_id)
+
+        self.assertEqual(Follows.query.count(), 0)
+        self.assertFalse(test_user_2.is_followed_by(test_user_1))
+
+    
+    def test_valid_authenticate(self):
+        """Test user authentication works with valid credentials."""
+
+        url = '/login'
+        resp = self.client.post(url,json = {"username": "testuser", "password": "HASHED_PASSWORD"},follow_redirects=True)
         html = resp.get_data(as_text=True)
 
         self.assertEqual(resp.status_code,200)
-        self.assertIn('<p>@testuser2</p>',html)
-        self.assertEqual(Follows.query.count(), 1)
+        self.assertIn('Hello, testuser!', html)
 
 
-    # def test_is_not_following()
+    def test_invalid_username_authenticate(self):
+        """Test user authentication does not work with invalid username."""
+
+        url = '/login'
+        resp = self.client.post(url,json = {"username": "i_am_invalid", "password": "HASHED_PASSWORD"},follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code,200)
+        # breakpoint()
+        self.assertIn('<h2 class="join-message">Welcome back.</h2>', html)
+        self.assertIn('Invalid credentials', html)
+
+        # TO FIX: Csrf token is not being passed into post request
