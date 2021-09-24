@@ -1,6 +1,6 @@
 {% extends 'users/detail.html' %}
 {% block user_details %}
-  <div class="col-sm-6">
+  <div class="col-sm-6" id="user-show-details">
     <ul class="list-group" id="messages">
 
       {% for message in user.messages %}

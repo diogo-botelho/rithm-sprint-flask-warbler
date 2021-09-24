@@ -139,6 +139,60 @@ class UserViewsTestCase(TestCase):
 ##############################################################################
 # General user routes:
 
+    def test_list_all_users(self):
+        """Test showing list of users"""
+
+        url = '/users'
+        resp = self.client.get(url)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code,200)
+        self.assertIn('id="user-index-list"', html)
+
+ 
+    def test_finds_user(self):
+        """Test showing user found."""
+
+        url = '/users?q=testuser'
+        resp = self.client.get(url)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code,200)
+        self.assertIn('id="user-index-list"', html)
+        self.assertIn('<p>@testuser</p>', html)
+
+    def test_finds_no_user(self):
+        """Test showing no user found."""
+
+        url = '/users?q=testuser4'
+        resp = self.client.get(url)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code,200)
+        self.assertIn('Sorry, no users found', html)     
+
+    def test_users_show_successful(self):
+        """Test showing user details."""
+
+        url = f'/users/{self.test_user_1_id}'
+        resp = self.client.get(url)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code,200)
+        self.assertIn('id="user-show-details"', html)
+
+    def test_users_show_unsuccessful(self):
+        """Test showing user details."""
+
+        url = f'/users/0'
+        resp = self.client.get(url)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code,404)
+
+
+
+
 
 
     # def test_is_following(self):
