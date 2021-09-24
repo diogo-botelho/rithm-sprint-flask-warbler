@@ -7,7 +7,7 @@
 
 import os
 from unittest import TestCase
-from flask import session, g
+from sqlalchemy.exc import IntegrityError
 
 from models import db, User, Message, Follows
 
@@ -102,8 +102,6 @@ class UserModelTestCase(TestCase):
 
         test_user_2.followers.append(test_user_1)
 
-        # self.assertEqual(resp.status_code,200)
-        # self.assertIn('<p>@testuser2</p>',html)
         self.assertEqual(Follows.query.count(), 1)
         self.assertTrue(test_user_1.is_following(test_user_2))
 
@@ -126,9 +124,6 @@ class UserModelTestCase(TestCase):
 
         test_user_2.followers.append(test_user_1)
 
-
-        # self.assertEqual(resp.status_code,200)
-        # self.assertIn('<p>@testuser2</p>',html)
         self.assertEqual(Follows.query.count(), 1)
         self.assertTrue(test_user_2.is_followed_by(test_user_1))
 
@@ -177,23 +172,58 @@ class UserModelTestCase(TestCase):
         self.assertEqual(test_user_3.username,"testuser3")
         self.assertEqual(test_user_3.email,"test3@test.com")
         self.assertNotEqual(test_user_3.password,"HASHED_PASSWORD")
-        # self.assertTrue(bcrypt.check_password_hash(test_user_3.password,"HASHED_PASSWORD"))
         self.assertTrue(test_user_3.password.startswith("$2b$12$"))
         self.assertEqual(test_user_3.image_url,"/static/images/default-pic.png")
 
 
-    # def test_invalid_username_authenticate(self):
-    #     """Test user authentication does not work with invalid username."""
+    def test_none_username_signup(self):
+        """Test user authentication does not work with invalid username."""
 
-    #     test_user_1 = User.query.get(self.test_user_1_id)
+        User.signup(None, "anotheremail@test.com", "HASHED_PASSWORD", None)
+
+        with self.assertRaises(IntegrityError) as context:
+            db.session.commit()
+
+        self.assertIn('null value in column "username"', str(context.exception))
+
+
+    def test_none_email_signup(self):
+        """Test user authentication does not work with invalid email."""
+
+        User.signup("test100", None, "HASHED_PASSWORD", None)
+
+        with self.assertRaises(IntegrityError) as context:
+            db.session.commit()
+
+        self.assertIn('null value in column "email"', str(context.exception))
+    
+
+    def test_none_password_signup(self):
+        """Test user authentication does not work with invalid password."""
+     
+        with self.assertRaises(ValueError) as context:
+            User.signup("test100", "anotheremail@test.com", None, None)
         
-    #     self.assertNotEqual(User.authenticate("random_user","HASHED_PASSWORD"),test_user_1)
+        self.assertIn('Password must be non-empty', str(context.exception))  
 
 
-    # def test_invalid_password_authenticate(self):
-    #     """Test user authentication does not work with invalid username."""
+    def test_nonunique_username_signup(self):
+        """Test user authentication does not work with non-unique username."""
 
-    #     test_user_1 = User.query.get(self.test_user_1_id)
+        User.signup("testuser", "anotheremail@test.com", "HASHED_PASSWORD", None)
+
+        with self.assertRaises(IntegrityError) as context:
+            db.session.commit()
         
-    #     self.assertNotEqual(User.authenticate("testuser","RANDOM_PASSWORD"),test_user_1)
-   
+        self.assertIn('duplicate key value violates unique constraint "users_username_key"', str(context.exception))
+
+
+    def test_nonunique_email_signup(self):
+        """Test user authentication does not work with non-unique username."""
+
+        User.signup("testuseragain", "test@test.com", "HASHED_PASSWORD", None)
+
+        with self.assertRaises(IntegrityError) as context:
+            db.session.commit()
+        
+        self.assertIn('duplicate key value violates unique constraint "users_email_key"', str(context.exception))
