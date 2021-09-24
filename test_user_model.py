@@ -44,6 +44,13 @@ TEST_USER_DATA_2 = {
     "image_url":""
 }
 
+TEST_USER_DATA_3 = {
+    "email":"test3@test.com",
+    "username":"testuser3",
+    "password":"HASHED_PASSWORD",
+    "image_url": None
+}
+
 class UserModelTestCase(TestCase):
     """Test views for messages."""
 
@@ -90,14 +97,10 @@ class UserModelTestCase(TestCase):
     def test_is_following(self):
         """Test user1 is following user2"""
 
-        with self.client.session_transaction() as sess:
-            sess[CURR_USER_KEY] = self.test_user_1_id
-
-        url = f"/users/follow/{self.test_user_2_id}"
-        resp = self.client.post(url,follow_redirects=True)
-        # html = resp.get_data(as_text=True)
         test_user_1 = User.query.get(self.test_user_1_id)
         test_user_2 = User.query.get(self.test_user_2_id)
+
+        test_user_2.followers.append(test_user_1)
 
         # self.assertEqual(resp.status_code,200)
         # self.assertIn('<p>@testuser2</p>',html)
@@ -107,9 +110,6 @@ class UserModelTestCase(TestCase):
 
     def test_is_not_following(self):
         """Test user1 is NOT following user2"""
-
-        with self.client.session_transaction() as sess:
-            sess[CURR_USER_KEY] = self.test_user_1_id
 
         test_user_1 = User.query.get(self.test_user_1_id)
         test_user_2 = User.query.get(self.test_user_2_id)
@@ -121,14 +121,11 @@ class UserModelTestCase(TestCase):
     def test_is_followed_by(self):
         """Test user2 is followed by user1"""
 
-        with self.client.session_transaction() as sess:
-            sess[CURR_USER_KEY] = self.test_user_1_id
-
-        url = f"/users/follow/{self.test_user_2_id}"
-        resp = self.client.post(url,follow_redirects=True)
-        # html = resp.get_data(as_text=True)
         test_user_1 = User.query.get(self.test_user_1_id)
         test_user_2 = User.query.get(self.test_user_2_id)
+
+        test_user_2.followers.append(test_user_1)
+
 
         # self.assertEqual(resp.status_code,200)
         # self.assertIn('<p>@testuser2</p>',html)
@@ -138,9 +135,6 @@ class UserModelTestCase(TestCase):
 
     def test_is_not_followed_by(self):
         """Test user2 is NOT followed by user1"""
-
-        with self.client.session_transaction() as sess:
-            sess[CURR_USER_KEY] = self.test_user_1_id
 
         test_user_1 = User.query.get(self.test_user_1_id)
         test_user_2 = User.query.get(self.test_user_2_id)
@@ -152,24 +146,54 @@ class UserModelTestCase(TestCase):
     def test_valid_authenticate(self):
         """Test user authentication works with valid credentials."""
 
-        url = '/login'
-        resp = self.client.post(url,json = {"username": "testuser", "password": "HASHED_PASSWORD"},follow_redirects=True)
-        html = resp.get_data(as_text=True)
-
-        self.assertEqual(resp.status_code,200)
-        self.assertIn('Hello, testuser!', html)
+        test_user_1 = User.query.get(self.test_user_1_id)
+        
+        self.assertEqual(User.authenticate("testuser","HASHED_PASSWORD"),test_user_1)
 
 
     def test_invalid_username_authenticate(self):
         """Test user authentication does not work with invalid username."""
 
-        url = '/login'
-        resp = self.client.post(url,json = {"username": "i_am_invalid", "password": "HASHED_PASSWORD"},follow_redirects=True)
-        html = resp.get_data(as_text=True)
+        test_user_1 = User.query.get(self.test_user_1_id)
+        
+        self.assertNotEqual(User.authenticate("random_user","HASHED_PASSWORD"),test_user_1)
 
-        self.assertEqual(resp.status_code,200)
-        # breakpoint()
-        self.assertIn('<h2 class="join-message">Welcome back.</h2>', html)
-        self.assertIn('Invalid credentials', html)
 
-        # TO FIX: Csrf token is not being passed into post request
+    def test_invalid_password_authenticate(self):
+        """Test user authentication does not work with invalid username."""
+
+        test_user_1 = User.query.get(self.test_user_1_id)
+        
+        self.assertNotEqual(User.authenticate("testuser","RANDOM_PASSWORD"),test_user_1)
+
+
+    def test_valid_signup(self):
+        """Test user signup works with valid credentials."""
+
+        test_user_3 = User.signup(**TEST_USER_DATA_3)
+        db.session.commit()
+
+        self.assertIsInstance(test_user_3,User)
+        self.assertEqual(test_user_3.username,"testuser3")
+        self.assertEqual(test_user_3.email,"test3@test.com")
+        self.assertNotEqual(test_user_3.password,"HASHED_PASSWORD")
+        # self.assertTrue(bcrypt.check_password_hash(test_user_3.password,"HASHED_PASSWORD"))
+        self.assertTrue(test_user_3.password.startswith("$2b$12$"))
+        self.assertEqual(test_user_3.image_url,"/static/images/default-pic.png")
+
+
+    # def test_invalid_username_authenticate(self):
+    #     """Test user authentication does not work with invalid username."""
+
+    #     test_user_1 = User.query.get(self.test_user_1_id)
+        
+    #     self.assertNotEqual(User.authenticate("random_user","HASHED_PASSWORD"),test_user_1)
+
+
+    # def test_invalid_password_authenticate(self):
+    #     """Test user authentication does not work with invalid username."""
+
+    #     test_user_1 = User.query.get(self.test_user_1_id)
+        
+    #     self.assertNotEqual(User.authenticate("testuser","RANDOM_PASSWORD"),test_user_1)
+   

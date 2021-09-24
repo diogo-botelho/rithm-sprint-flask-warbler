@@ -136,6 +136,16 @@ class User(db.Model):
         else:          
             message.user_likes.append(self)
 
+    
+    @classmethod
+    def hash_password(cls,password):
+        """Encrypt a password using bcrypt"""
+
+        hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
+
+        return hashed_pwd
+
+
     @classmethod
     def signup(cls, username, email, password, image_url):
         """Sign up user.
@@ -143,7 +153,7 @@ class User(db.Model):
         Hashes password and adds user to system.
         """
 
-        hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
+        hashed_pwd = User.hash_password(password)
 
         user = User(
             username=username,
@@ -154,6 +164,7 @@ class User(db.Model):
 
         db.session.add(user)
         return user
+
 
     @classmethod
     def authenticate(cls, username, password):
