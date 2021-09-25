@@ -194,7 +194,7 @@ class UserViewsTestCase(TestCase):
 
 
 
-
+    #Unfinished tests
     # def test_is_following(self):
     #     """Test user1 is following user2"""
 
